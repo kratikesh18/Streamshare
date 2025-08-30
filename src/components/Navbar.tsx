@@ -48,7 +48,7 @@ const Navbar = () => {
         </div>
       ) : (
         <div className="flex gap-4 items-center">
-          <Link href="/addMembership">
+          <Link href="/create">
             <Button className="px-5 py-2 rounded-md bg-[#7e25eb] text-white hover:bg-[#971dd8] transition-colors duration-200 font-semibold">
               <HiOutlinePlus className="inline " />
               Add Membership

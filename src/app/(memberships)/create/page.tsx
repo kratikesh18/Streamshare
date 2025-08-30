@@ -18,45 +18,85 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectTrigger,
+  SelectValue,
   SelectContent,
   SelectItem,
-  SelectTrigger,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import membershipSchema from "@/schemas/membershipSchema";
-import { Select, SelectValue } from "@radix-ui/react-select";
+import axiosInstance from "@/lib/axios";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { toast } from "sonner";
+
+type FormValues = {
+  platform: string;
+  plan: string;
+  totalSlots: number | string;
+  pricePerSlot: number | string;
+  description: string;
+  groupRules: string; // newline-separated
+  featuresIncluded: string; // newline-separated
+};
 
 export default function CreateMembershipPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof membershipSchema>>({
+  const form = useForm<FormValues>({
     defaultValues: {
-      platform: "Netflix",
+      platform: "spotify",
       plan: "Basic",
       totalSlots: 2,
-      pricePerSlot: 0,
-      description: "",
-      groupRules: [],
-      featuresIncluded: [],
+      pricePerSlot: 50,
+      description:
+        "Share your Spotify Premium Family plan with the community. Billing is handled monthly. No password changes or profile name edits.",
+      groupRules: [
+        "No password or email changes",
+        "Use your assigned profile only",
+        "Do not remove other profiles",
+        "Payment due before renewal date",
+        "Max 1 active device per member at a time",
+      ].join("\n"),
+      featuresIncluded: [
+        "Ad-free music",
+        "High-quality streaming",
+        "Offline downloads",
+        "Family plan support (up to 6 profiles)",
+      ].join("\n"),
     },
   });
 
-  // Optimized: handle form submission
-  const handleSubmit = async (values: z.infer<typeof membershipSchema>) => {
+  const toLines = (s: string) =>
+    s
+      .split(/\r?\n/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+  const handleSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      // TODO: Add API call here
-      // await axios.post("/api/memberships", values);
-      // toast.success("Membership created!");
-      router.push("/memberships");
+      const payload = {
+        platform: values.platform,
+        plan: values.plan,
+        totalSlots: Number(values.totalSlots),
+        pricePerSlot: Number(values.pricePerSlot),
+        description: values.description.trim(),
+        groupRules: toLines(values.groupRules),
+        featuresIncluded: toLines(values.featuresIncluded),
+      };
+
+      const response = await axiosInstance.post("api/membership", payload);
+      console.log("Membership created:", response.data);
+      //use sonner
+      toast.success("Membership created!");
+      router.push(`/mymemberships`);
     } catch (error) {
+      console.error(error);
       // toast.error("Failed to create membership");
     } finally {
       setIsSubmitting(false);
@@ -68,7 +108,7 @@ export default function CreateMembershipPage() {
       <div className="w-full max-w-7xl py-10">
         <div className="flex items-center mb-8">
           <Button variant="ghost" size="icon" asChild className="mr-2">
-            <Link href="/memberships">
+            <Link href="/">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
@@ -102,8 +142,8 @@ export default function CreateMembershipPage() {
                           <FormItem>
                             <FormLabel>Platform</FormLabel>
                             <Select
+                              value={field.value}
                               onValueChange={field.onChange}
-                              defaultValue={field.value}
                             >
                               <FormControl>
                                 <SelectTrigger>

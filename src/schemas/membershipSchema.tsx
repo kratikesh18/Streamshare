@@ -10,6 +10,8 @@ const membershipSchema = z.object({
     "Spotify",
     "Apple TV+",
     "YouTube Premium",
+    "netflix",
+    "spotify",
   ]),
   plan: z.enum(["Basic", "Standard", "Premium"]),
   totalSlots: z.number().min(2, { message: "Total slots must be at least 2" }),
