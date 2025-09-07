@@ -3,26 +3,29 @@ import { NextRequest, NextResponse } from "next/server";
 export { default } from "next-auth/middleware";
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/signin", "/signup", "/", "/forgotPassword"],
+  matcher: [
+    "/dashboard/:path*",
+    "/signin",
+    "/signup",
+    "/",
+    "/forgotPassword",
+    "/mymemberships",
+  ],
 };
+
+const authRoutes = ["/signin", "/signup", "/resetPassword"];
+const protectedRoutes = ["/dashboard", "/mymemberships"];
 
 export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request });
   const url = request.nextUrl;
 
-  //check url and token
-  //redirect the user depending upon that
-  if (
-    token &&
-    (url.pathname.startsWith("/signin") ||
-      url.pathname.startsWith("/signup") ||
-      url.pathname.startsWith("/resetPassword"))
-  ) {
+  if (token && authRoutes.some((r) => url.pathname.startsWith(r))) {
     url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
-  if (!token && url.pathname.startsWith("/dashboard")) {
+  if (!token && protectedRoutes.some((r) => url.pathname.startsWith(r))) {
     url.pathname = "/signin";
     return NextResponse.redirect(url);
   }

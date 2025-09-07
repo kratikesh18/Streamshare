@@ -112,9 +112,11 @@ const authOptions: AuthOptions = {
     },
 
     async jwt({ token, user }) {
-      if (user) {
-        token.id = (user as any).id || (user as any)._id?.toString();
-      }
+      // console.log("JWT Callback:", { token, user });
+      // if (user) {
+      //   token.id = (user as any).id;
+      // }
+      // console.log(token.id, token.email);
 
       if (!token.id && token.email) {
         await DBconnect();
@@ -122,22 +124,26 @@ const authOptions: AuthOptions = {
         const dbUser: UserType | null = await UserModel.findOne({
           email: token.email,
         });
+        // console.log("DB User found in JWT callback:", dbUser);
         if (dbUser) {
           token.id = dbUser._id.toString();
         }
       }
 
       // console.log("JWT Callback:", { token, user });
+      // console.log("Returning token from JWT callback:", token);
+
       return token;
     },
 
- async session({ session, token }) {
-  if (token?.id && session.user) {
-    session.user.id = token.id; // ✅ no TS error now
-  }
-  return session;
-}
+    async session({ session, token }) {
+      if (token?.id && session.user) {
+        session.user.id = token.id; // ✅ no TS error now
+      }
 
+      // console.log(session);
+      return session;
+    },
   },
 
   pages: {
