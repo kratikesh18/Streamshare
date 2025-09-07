@@ -6,21 +6,9 @@ import axiosInstance from "@/lib/axios";
 import { SectionBar } from "@/components/membershipDetailsComponents/sectionBar";
 import { MembershipDetailsSection } from "@/components/membershipDetailsComponents/membershipDetailsSection";
 import { MembersList } from "@/components/membershipDetailsComponents/membersList";
+import { PriceAndDetails } from "@/components/membershipDetailsComponents/priceAndDetails";
 
-const defaultMember = [
-  {
-    name: "Kartikesh Pachkawade",
-    isOwner: true,
-    joinedDate: new Date().toISOString(),
-    profilePicture: "/default-profile.png",
-  },
-  {
-    name: "John Doe",
-    isOwner: false,
-    joinedDate: new Date().toISOString(),
-    profilePicture: "/default-profile.png",
-  },
-];
+// fallback members used only when the membership has no members data
 
 export const formatINR = (n: number) =>
   new Intl.NumberFormat("en-IN", {
@@ -40,17 +28,38 @@ export default function MyMembershipDetailsPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
 
+  const fallbackMembers = [
+    {
+      _id: "1",
+      name: "Tyrion Lannister",
+      isOwner: true,
+      joinedDate: new Date().toISOString(),
+      profilePicture:
+        "https://res.cloudinary.com/dxo7rbhrl/image/upload/nywu8ufl9t3pgu4ffuiv.png",
+    },
+    {
+      _id: "2",
+      name: "Kartikesh Pachkawade",
+      isOwner: false,
+      joinedDate: new Date().toISOString(),
+      profilePicture:
+        "https://res.cloudinary.com/dxo7rbhrl/image/upload/v1754061457/ozcjexruo0nmiyanrvrn.jpg",
+    },
+  ];
+
   type MembershipDetails = {
     _id: string;
     platform: string;
     plan: string;
-    pricePerSlot: number;
     totalSlots: number;
+    pricePerSlot: number;
     description: string;
     groupRules: string[];
     featuresIncluded: string[];
+    members: string[]; // array of user IDs
+    admin: string; // user ID of admin
     createdAt: string;
-    userId?: string;
+    updatedAt: string;
   };
 
   const [membershipDetails, setMembershipDetails] =
@@ -65,8 +74,7 @@ export default function MyMembershipDetailsPage() {
       try {
         setLoading(true);
         const response = await axiosInstance.get(`/api/membership/${id}`);
-        console.log(response.data);
-        setMembershipDetails(response.data);
+        setMembershipDetails(response.data.membership); // only the membership object
       } catch (error) {
         console.error("Error fetching membership details:", error);
       } finally {
@@ -74,7 +82,7 @@ export default function MyMembershipDetailsPage() {
       }
     }
     fetchData();
-  }, []);
+  }, [id]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -86,16 +94,29 @@ export default function MyMembershipDetailsPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#ededed]">
       <div className="mx-auto max-w-5xl px-4 md:px-8 py-10">
-        <div className="flex items-center justify-between mb-8">
-          <div>
+        {/* header */}
+        <div className="flex items-start justify-between mb-8 gap-6">
+          <div className="flex-1">
             <h1 className="text-3xl font-bold tracking-tight">
               {membershipDetails.platform} • {membershipDetails.plan}
             </h1>
-            <p className="text-sm text-[#a3a3a3] mt-1">
-              Created on {formatDate(membershipDetails.createdAt)}
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="rounded-md bg-[#141418] px-2 py-1 text-xs text-[#d7d7d7]">
+                {formatINR(membershipDetails.pricePerSlot)}/slot
+              </span>
+              <span className="rounded-md bg-[#141418] px-2 py-1 text-xs text-[#d7d7d7]">
+                {membershipDetails.totalSlots} slots
+              </span>
+              <span className="rounded-md bg-[#141418] px-2 py-1 text-xs text-[#d7d7d7]">
+                Members: {membershipDetails?.members?.length ?? "-"}
+              </span>
+              <span className="rounded-md bg-[#141418] px-2 py-1 text-xs text-[#9a9a9a]">
+                Created {formatDate(membershipDetails.createdAt)}
+              </span>
+            </div>
           </div>
-          <div className="flex gap-3">
+
+          <div className="flex-shrink-0 flex gap-3">
             <Link
               href="/mymemberships"
               className="inline-flex items-center rounded-md border border-[#232323] bg-[#18181b] hover:bg-[#1b1b1f] px-4 py-2 text-sm font-medium"
@@ -111,103 +132,45 @@ export default function MyMembershipDetailsPage() {
           </div>
         </div>
 
-        <div className="">
-          <div>
+        <div className="grid gap-6 md:grid-cols-3 items-start">
+          <main className="md:col-span-2 space-y-6">
             <SectionBar
               selectedOption={selectedOption}
               setSelectedOption={setSelectedOption}
             />
-          </div>
 
-          {selectedOption == "Details" && (
-            <div>
-              <MembershipDetailsSection
-                description={membershipDetails.description}
-                groupRules={membershipDetails.groupRules}
-                featuresIncluded={membershipDetails.featuresIncluded}
-              />
-            </div>
-          )}
+            <div className="rounded-xl border border-[#232323] bg-[#18181b] p-6">
+              {selectedOption === "Details" && (
+                <MembershipDetailsSection
+                  description={membershipDetails.description}
+                  groupRules={membershipDetails.groupRules}
+                  featuresIncluded={membershipDetails.featuresIncluded}
+                />
+              )}
 
-          {selectedOption == "Members" && (
-            <div>
-              <MembersList members={defaultMember} />
-            </div>
-          )}
+              {selectedOption === "Members" && (
+                <MembersList members={fallbackMembers} />
+              )}
 
-          {selectedOption == "GC" && (
-            <div>
-              <h1>showing GC</h1>
-            </div>
-          )}
-          {/* <div className="lg:col-span-2 rounded-xl border border-[#232323] bg-[#18181b] p-6"> */}
-          <div className="space-y-6">
-            {membershipDetails.description && (
-              <section>
-                <h2 className="font-semibold mb-2">Description</h2>
-                <p className="text-[#cfcfcf] leading-relaxed whitespace-pre-line">
-                  {membershipDetails.description}
-                </p>
-              </section>
-            )}
-
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-lg border border-[#232323] bg-[#141418] p-4">
-                <div className="text-xs text-[#a3a3a3]">Total slots</div>
-                <div className="text-lg font-semibold">
-                  {membershipDetails.totalSlots}
+              {selectedOption === "GC" && (
+                <div className="text-sm text-[#a3a3a3]">
+                  Group chat coming soon.
                 </div>
-              </div>
-              <div className="rounded-lg border border-[#232323] bg-[#141418] p-4">
-                <div className="text-xs text-[#a3a3a3]">Price per slot</div>
-                <div className="text-lg font-semibold">
-                  {formatINR(membershipDetails.pricePerSlot)}
-                </div>
-              </div>
-              <div className="rounded-lg border border-[#232323] bg-[#141418] p-4">
-                <div className="text-xs text-[#a3a3a3]">Created</div>
-                <div className="text-lg font-semibold">
-                  {formatDate(membershipDetails.createdAt)}
-                </div>
-              </div>
-            </section>
-          </div>
+              )}
+            </div>
+          </main>
+
+          <aside className="md:col-span-1">
+            <PriceAndDetails
+              pricePerSlot={membershipDetails.pricePerSlot}
+              totalSlots={membershipDetails.totalSlots}
+              posted={membershipDetails.createdAt}
+              owner={{ _id: membershipDetails._id, name: "Admin" }}
+              membershipId={membershipDetails._id}
+            />
+          </aside>
         </div>
-
-        <aside className="rounded-xl border border-[#232323] bg-[#18181b] p-6 space-y-6">
-          {Array.isArray(membershipDetails.featuresIncluded) &&
-            membershipDetails.featuresIncluded.length > 0 && (
-              <section>
-                <h3 className="font-semibold mb-3">Features included</h3>
-                <div className="flex flex-wrap gap-2">
-                  {membershipDetails.featuresIncluded.map(
-                    (f: string, i: number) => (
-                      <span
-                        key={`feat-${i}`}
-                        className="inline-flex items-center rounded-md border border-[#2a2a2a] bg-[#1b1b1f] px-2 py-1 text-xs text-[#d7d7d7]"
-                      >
-                        {f}
-                      </span>
-                    )
-                  )}
-                </div>
-              </section>
-            )}
-
-          {Array.isArray(membershipDetails.groupRules) &&
-            membershipDetails.groupRules.length > 0 && (
-              <section>
-                <h3 className="font-semibold mb-3">Group rules</h3>
-                <ol className="list-decimal list-inside space-y-1 text-sm text-[#d7d7d7]">
-                  {membershipDetails.groupRules.map((r: string, i: number) => (
-                    <li key={`rule-${i}`}>{r}</li>
-                  ))}
-                </ol>
-              </section>
-            )}
-        </aside>
       </div>
     </div>
-    // </div>
   );
 }

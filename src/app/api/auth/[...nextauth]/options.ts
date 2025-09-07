@@ -1,5 +1,5 @@
 import { DBconnect } from "@/lib/DBconnect";
-import { UserModel } from "@/models/user.model";
+import { UserModel, UserType } from "@/models/user.model";
 import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -80,6 +80,8 @@ const authOptions: AuthOptions = {
       },
     }),
   ],
+  secret: process.env.NEXTAUTH_SECRET,
+  session: { strategy: "jwt" },
 
   callbacks: {
     async signIn({ account, profile }) {
@@ -100,6 +102,7 @@ const authOptions: AuthOptions = {
               isEmailVerified: true,
             });
           }
+          return true;
         } catch (error) {
           console.error("Error creating user:", error);
           return false;
@@ -107,9 +110,36 @@ const authOptions: AuthOptions = {
       }
       return true;
     },
+
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = (user as any).id || (user as any)._id?.toString();
+      }
+
+      if (!token.id && token.email) {
+        await DBconnect();
+
+        const dbUser: UserType | null = await UserModel.findOne({
+          email: token.email,
+        });
+        if (dbUser) {
+          token.id = dbUser._id.toString();
+        }
+      }
+
+      // console.log("JWT Callback:", { token, user });
+      return token;
+    },
+
+ async session({ session, token }) {
+  if (token?.id && session.user) {
+    session.user.id = token.id; // ✅ no TS error now
+  }
+  return session;
+}
+
   },
 
-  session: { strategy: "jwt" },
   pages: {
     signIn: "/signin",
   },

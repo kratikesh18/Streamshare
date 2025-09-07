@@ -1,15 +1,19 @@
+
 import { DBconnect } from "@/lib/DBconnect";
 import { MembershipModel } from "@/models/membership.model";
 import membershipSchema from "@/schemas/membershipSchema";
-import { ZodError } from "zod";
+import { getServerSession } from "next-auth";
+
+import { authOptions } from "../../auth/[...nextauth]/options";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   await DBconnect();
-
   try {
     const raw = await req.json();
+    const session = await getServerSession(authOptions);
 
-    // Normalize incoming data (handles strings and arrays)
+    // Helper: normalize array/string fields
     const toStringArray = (v: unknown): string[] => {
       if (Array.isArray(v))
         return v.map((s) => String(s).trim()).filter(Boolean);
@@ -21,6 +25,7 @@ export async function POST(req: Request) {
       return [];
     };
 
+    // Prepare payload
     const payload = {
       platform: String(raw.platform ?? "").trim(),
       plan: String(raw.plan ?? "").trim(),
@@ -31,75 +36,40 @@ export async function POST(req: Request) {
       featuresIncluded: toStringArray(raw.featuresIncluded),
     };
 
-    // Validate with Zod
+    // Validate
     const parsed = membershipSchema.safeParse(payload);
     if (!parsed.success) {
-      const error = parsed.error as ZodError;
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           message: "Validation failed",
-          errors: error.flatten(),
-        }),
-        {
-          status: 400,
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-store",
-          },
-        }
+          errors: parsed.error.flatten(),
+        },
+        { status: 422 }
       );
     }
 
-    // Persist
-    const created = await MembershipModel.create(parsed.data);
+    // Save
+    const created = await MembershipModel.create({
+      admin: session?.user.id,
+      ...parsed.data,
+    });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Membership created",
-        data: created,
-      }),
-      {
-        status: 201,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store",
-        },
-      }
-    );
+    return NextResponse.json({ success: true, data: created }, { status: 200 });
   } catch (err: any) {
-    // Handle known Mongoose validation errors
     if (err?.name === "ValidationError") {
-      return new Response(
-        JSON.stringify({
+      return NextResponse.json(
+        {
           success: false,
           message: "Database validation failed",
           errors: err?.errors ?? null,
-        }),
-        {
-          status: 422,
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-store",
-          },
-        }
+        },
+        { status: 422 }
       );
     }
-
-    // Fallback
-    return new Response(
-      JSON.stringify({
-        success: false,
-        message: "Internal Server Error",
-      }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store",
-        },
-      }
+    return NextResponse.json(
+      { success: false, message: "Internal Server Error" },
+      { status: 500 }
     );
   }
 }

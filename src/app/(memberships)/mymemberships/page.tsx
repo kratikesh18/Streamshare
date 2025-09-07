@@ -6,6 +6,7 @@ import axiosInstance from "@/lib/axios";
 import { ApiResponse, MembershipItem, Meta } from "@/types/ApiResponse";
 import { MembershipCardSkeleton } from "@/components/skeletons/membershipCardSkeleton";
 import { MembershipDetailsCard } from "@/components/membershipDetailsCard";
+import { toast } from "sonner";
 
 export default function MyMembershipsPage() {
   const [items, setItems] = useState<MembershipItem[]>([]);
@@ -18,31 +19,23 @@ export default function MyMembershipsPage() {
   // const limit = 12;
 
   useEffect(() => {
-    const controller = new AbortController();
-
     async function load() {
       setLoading(true);
       setError(null);
       try {
-        // Parentheses folders are URL-invisible: use /api/getAllMemberships
         const res = await axiosInstance.get<ApiResponse>(
-          "/api/getAllMemberships",
-          {
-            // params: { page, limit },
-            signal: controller.signal,
-            headers: { Accept: "application/json" },
-          }
+          "/api/getMyMemberships"
         );
-
+        console.log(res.data);
         if (!res.data?.success) {
-          throw new Error(res.data?.message || "Failed to fetch memberships");
+          toast.error(res.data?.message || "Failed to fetch memberships");
         }
 
         setItems(res.data.data || []);
         setMeta(res.data.meta || null);
       } catch (e: any) {
         // Ignore cancellation errors
-        if (e?.name === "CanceledError" || e?.code === "ERR_CANCELED") return;
+        console.log(e.error || e.message);
         setError(e?.message || "Something went wrong");
       } finally {
         setLoading(false);
@@ -50,7 +43,6 @@ export default function MyMembershipsPage() {
     }
 
     load();
-    return () => controller.abort();
     // }, [page]); // fetch when page changes
   }, []);
 

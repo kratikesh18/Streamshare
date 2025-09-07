@@ -2,7 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 import { HiOutlinePlus } from "react-icons/hi";
 import {
@@ -88,14 +88,14 @@ const Navbar = () => {
                     Profile
                   </Button>
                 </Link>
-                <Link href="/api/auth/signout">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-left px-3 py-2 hover:bg-[#18181b] rounded-md"
-                  >
-                    Logout
-                  </Button>
-                </Link>
+
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-left px-3 py-2 hover:bg-[#18181b] rounded-md"
+                  onClick={() => signOut()}
+                >
+                  Logout
+                </Button>
               </div>
             </PopoverContent>
           </Popover>

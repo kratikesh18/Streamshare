@@ -9,6 +9,7 @@ interface MembershipType extends Document {
   groupRules: string[];
   featuresIncluded: string[];
   members: Types.ObjectId[];
+  admin: Types.ObjectId;
 }
 
 type MembershipModelType = Model<MembershipType>;
@@ -55,6 +56,11 @@ const membershipSchema = new Schema<MembershipType>(
       ref: "User",
       required: true,
       default: [],
+    },
+    admin: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
   },
   { timestamps: true }
