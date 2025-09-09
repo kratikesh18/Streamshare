@@ -46,6 +46,7 @@ export default function MyMembershipsPage() {
     // }, [page]); // fetch when page changes
   }, []);
 
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#ededed]">
       <div className="mx-auto max-w-7xl px-4 md:px-8 py-10">
@@ -71,6 +72,7 @@ export default function MyMembershipsPage() {
             {error}
           </div>
         )}
+
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
